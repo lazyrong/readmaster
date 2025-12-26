@@ -1,34 +1,26 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "readmaster",
+  "main": "src/index.tsx",
   "compatibility_date": "2025-12-26",
   "pages_build_output_dir": "./dist",
-  "compatibility_flags": [
-    "nodejs_compat"
+  "compatibility_flags": ["nodejs_compat"],
+  
+  // D1 Database for persistent storage
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "readmaster-production",
+      "database_id": ""  // Will be set after creating database
+    }
   ]
-  // "vars": {
-  //   "MY_VAR": "my-variable"
-  // },
+
+  // KV will be added later if needed
   // "kv_namespaces": [
   //   {
-  //     "binding": "MY_KV_NAMESPACE",
-  //     "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  //     "binding": "CACHE",
+  //     "id": "your-kv-id",
+  //     "preview_id": "your-preview-id"
   //   }
-  // ],
-  // "r2_buckets": [
-  //   {
-  //     "binding": "MY_BUCKET",
-  //     "bucket_name": "my-bucket"
-  //   }
-  // ],
-  // "d1_databases": [
-  //   {
-  //     "binding": "MY_DB",
-  //     "database_name": "my-database",
-  //     "database_id": ""
-  //   }
-  // ],
-  // "ai": {
-  //   "binding": "AI"
-  // }
+  // ]
 }
