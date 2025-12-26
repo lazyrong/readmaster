@@ -65,17 +65,26 @@ export class RSSAdapter extends BaseSourceAdapter {
   private extractTag(xml: string, tag: string): string {
     const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i');
     const match = xml.match(regex);
-    return match ? match[1].trim() : '';
+    if (!match) return '';
+    
+    let content = match[1].trim();
+    
+    // Remove CDATA tags
+    content = content.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1');
+    
+    return content;
   }
   
   private stripHtml(html: string): string {
     return html
+      .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')  // Remove CDATA first
       .replace(/<[^>]*>/g, '')
       .replace(/&nbsp;/g, ' ')
       .replace(/&amp;/g, '&')
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
       .trim();
   }
 }

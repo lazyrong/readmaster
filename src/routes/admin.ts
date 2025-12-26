@@ -276,4 +276,24 @@ admin.post('/seed', async (c) => {
   }
 });
 
+// Clear all contents
+admin.delete('/contents', async (c) => {
+  const db = c.env.DB;
+  
+  try {
+    await db.prepare('DELETE FROM contents').run();
+    await db.prepare('DELETE FROM analyses').run();
+    
+    return c.json({ 
+      success: true,
+      message: 'All contents cleared'
+    });
+  } catch (error: any) {
+    return c.json({ 
+      error: 'Failed to clear contents',
+      message: error.message
+    }, 500);
+  }
+});
+
 export default admin;
