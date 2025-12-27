@@ -296,4 +296,14 @@ admin.delete('/contents', async (c) => {
   }
 });
 
+// Test endpoint to check environment variables
+admin.get('/env-check', async (c) => {
+  return c.json({
+    has_api_key: !!c.env.OPENAI_API_KEY,
+    has_base_url: !!c.env.OPENAI_BASE_URL,
+    api_key_preview: c.env.OPENAI_API_KEY ? c.env.OPENAI_API_KEY.substring(0, 20) + '...' : 'NOT SET',
+    base_url: c.env.OPENAI_BASE_URL || 'NOT SET'
+  });
+});
+
 export default admin;

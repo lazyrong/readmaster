@@ -208,4 +208,5 @@ export interface Env {
   DB: D1Database;
   CACHE?: KVNamespace;
   OPENAI_API_KEY?: string;
+  OPENAI_BASE_URL?: string;
 }

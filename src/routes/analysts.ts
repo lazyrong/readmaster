@@ -65,7 +65,8 @@ analysts.post('/analyze', async (c) => {
     const result = await analyzeWithAI(
       content,
       analyst,
-      c.env.OPENAI_API_KEY || ''
+      c.env.OPENAI_API_KEY || '',
+      c.env.OPENAI_BASE_URL
     );
     
     // Save analysis
@@ -102,10 +103,22 @@ export default analysts;
 async function analyzeWithAI(
   content: any,
   analyst: any,
-  apiKey: string
+  apiKey: string,
+  baseUrl?: string
 ): Promise<{ text: string; tokens: number }> {
   if (!apiKey) {
     throw new Error('OpenAI API key not configured');
+  }
+  
+  // Use GenSpark API base URL if not provided
+  const apiBaseUrl = baseUrl || 'https://www.genspark.ai/api/llm_proxy/v1';
+  
+  // Map model names - use gpt-5 as default
+  let modelName = analyst.model;
+  if (modelName === 'gpt-4' || modelName === 'gpt-4-turbo') {
+    modelName = 'gpt-5';
+  } else if (modelName === 'gpt-3.5-turbo') {
+    modelName = 'gpt-5-mini';
   }
   
   const messages = [
@@ -119,14 +132,16 @@ async function analyzeWithAI(
     }
   ];
   
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch(`${apiBaseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
+      'Authorization': `Bearer ${apiKey}`,
+      'User-Agent': 'ReadMaster/1.0',
+      'Accept': 'application/json'
     },
     body: JSON.stringify({
-      model: analyst.model,
+      model: modelName,
       messages,
       temperature: analyst.temperature,
       max_tokens: analyst.max_tokens
@@ -134,7 +149,8 @@ async function analyzeWithAI(
   });
   
   if (!response.ok) {
-    throw new Error(`OpenAI API error: ${response.statusText}`);
+    const errorText = await response.text();
+    throw new Error(`API error (${response.status}): ${errorText}`);
   }
   
   const data = await response.json<any>();
