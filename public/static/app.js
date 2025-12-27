@@ -2,8 +2,12 @@
 // ============================================
 
 const API_BASE = '/api';
+const GENSPARK_API_KEY = 'gsk-eyJjb2dlbl9pZCI6ICI4ODEwOWU2ZC01NGQ5LTRkZjItYWJhNS1kNjg3OTRkOWQ1Y2UiLCAia2V5X2lkIjogIjcwY2Q2YmUxLTAyZDktNGJlZC1iYWRiLWIyNGJkZmE5OWVjMCJ9fOGAcxk7cSsN-VaSZanhY9TkH07s3kljk4FusBOSTPoq';
+const GENSPARK_BASE_URL = 'https://www.genspark.ai/api/llm_proxy/v1';
+
 let currentPulseId = null;
 let selectedContentId = null;
+let currentAnalysts = []; // Store analysts data
 
 // ============================================
 // Initialization
@@ -209,10 +213,11 @@ async function loadAnalysts() {
   try {
     const response = await axios.get(`${API_BASE}/analysts`);
     const analysts = response.data.analysts;
+    currentAnalysts = analysts; // Store for later use
     
     const analystsList = document.getElementById('analysts-list');
     analystsList.innerHTML = analysts.map(analyst => `
-      <div class="analyst-badge p-3 rounded-lg border-2 border-gray-200 dark:border-gray-600 hover:border-purple-500 cursor-pointer"
+      <div class="analyst-badge p-3 rounded-lg border-2 border-gray-200 dark:border-gray-600 hover:border-purple-500 cursor-pointer ${selectedAnalystId === analyst.id ? 'border-purple-500 bg-purple-50 dark:bg-purple-900' : ''}"
            onclick="selectAnalyst(${analyst.id})">
         <div class="flex items-center space-x-2">
           <div class="w-10 h-10 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center">
@@ -239,6 +244,7 @@ let selectedAnalystId = null;
 
 function selectAnalyst(analystId) {
   selectedAnalystId = analystId;
+  loadAnalysts(); // Reload to update UI
 }
 
 async function createAnalyst() {
@@ -281,23 +287,85 @@ async function analyzeContent(contentId) {
     analysisResult.classList.remove('hidden');
     analysisContent.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>分析中...';
     
-    const response = await axios.post(`${API_BASE}/analysts/analyze`, {
-      content_id: contentId,
-      analyst_id: selectedAnalystId
+    // Get content details
+    const contentsResponse = await axios.get(`${API_BASE}/pulses/${currentPulseId || 1}`);
+    const content = contentsResponse.data.contents.find(c => c.id === contentId);
+    
+    if (!content) {
+      throw new Error('内容未找到');
+    }
+    
+    // Get analyst details
+    const analyst = currentAnalysts.find(a => a.id === selectedAnalystId);
+    if (!analyst) {
+      throw new Error('分析师未找到');
+    }
+    
+    // Map model name
+    let modelName = analyst.model;
+    if (modelName === 'gpt-4' || modelName === 'gpt-4-turbo') {
+      modelName = 'gpt-5';
+    } else if (modelName === 'gpt-3.5-turbo') {
+      modelName = 'gpt-5-mini';
+    }
+    
+    // Call GenSpark API directly from browser
+    const response = await fetch(`${GENSPARK_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${GENSPARK_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: modelName,
+        messages: [
+          {
+            role: 'system',
+            content: analyst.system_prompt
+          },
+          {
+            role: 'user',
+            content: `标题：${content.title}\n\n内容：${content.processed_content || content.raw_content || content.summary}`
+          }
+        ],
+        temperature: analyst.temperature || 0.7,
+        max_tokens: analyst.max_tokens || 2000
+      })
     });
     
-    const analysis = response.data.analysis;
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API 错误 (${response.status}): ${errorText.substring(0, 200)}`);
+    }
+    
+    const data = await response.json();
+    const analysisText = data.choices[0].message.content;
+    
+    // Save analysis to backend (optional, for history)
+    try {
+      await axios.post(`${API_BASE}/analysts/analyze`, {
+        content_id: contentId,
+        analyst_id: selectedAnalystId
+      });
+    } catch (e) {
+      console.log('Failed to save analysis to backend:', e.message);
+      // Continue anyway, we have the result
+    }
+    
+    // Display result
     analysisContent.innerHTML = `
       <div class="prose prose-sm dark:prose-invert max-w-none">
-        ${formatAnalysisResult(analysis.result)}
+        ${formatAnalysisResult(analysisText)}
       </div>
       <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500">
-        <i class="fas fa-clock mr-1"></i>${formatDate(analysis.created_at)}
-        <span class="ml-3"><i class="fas fa-coins mr-1"></i>${analysis.tokens_used || 0} tokens</span>
+        <i class="fas fa-clock mr-1"></i>${new Date().toLocaleString('zh-CN')}
+        <span class="ml-3"><i class="fas fa-robot mr-1"></i>${analyst.name}</span>
+        <span class="ml-3"><i class="fas fa-coins mr-1"></i>${data.usage?.total_tokens || 0} tokens</span>
       </div>
     `;
   } catch (error) {
-    alert('分析失败：' + error.response?.data?.message || error.message);
+    console.error('Analysis error:', error);
+    alert('分析失败：' + error.message);
     document.getElementById('analysis-result').classList.add('hidden');
   }
 }
