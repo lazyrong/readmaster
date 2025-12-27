@@ -21,8 +21,8 @@ ReadMaster 是一个专为知识工作者打造的智能信息工作台，帮助
 ## 🌐 在线访问
 
 - **开发服务器**: https://3000-ihgrui7rdoday4th0xm9d-5c13a017.sandbox.novita.ai
-- **GitHub 仓库**: (待推送)
-- **生产环境**: (待部署)
+- **GitHub 仓库**: https://github.com/lazyrong/readmaster
+- **生产环境**: (待部署到 Cloudflare Pages)
 
 ---
 
@@ -92,7 +92,7 @@ Sources (1) ─── (N) Contents (1) ─── (N) Analyses
 
 ```bash
 # 1. 克隆项目
-git clone <repository-url>
+git clone https://github.com/lazyrong/readmaster.git
 cd readmaster
 
 # 2. 安装依赖
@@ -347,8 +347,8 @@ MIT License - 详见 LICENSE 文件
 
 ## 📮 联系方式
 
-- 项目主页: https://github.com/username/readmaster
-- 问题反馈: [GitHub Issues](https://github.com/username/readmaster/issues)
+- 项目主页: https://github.com/lazyrong/readmaster
+- 问题反馈: [GitHub Issues](https://github.com/lazyrong/readmaster/issues)
 
 ---
 
